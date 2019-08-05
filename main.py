@@ -1,6 +1,7 @@
-from NB_UI_py import NB_UI
+from GUI import GUI
 
 if __name__ == '__main__':
-    NB_gui = NB_UI()
-    NB_gui.show_gui()
+    window = GUI()
+    window.show_gui()
+
 
