@@ -36,7 +36,7 @@ class GUI(object):
 
     def build(self):
         structure_file = ""
-        train_file = ""
+        training_file = ""
         # data_headers_and_types = {}
         self.dir_path = self.dir_path_lineEdit.text()
         if not os.path.exists(self.dir_path):
@@ -53,16 +53,14 @@ class GUI(object):
                     types = line[2]
                     i = 3
                     if '{' in types:
-                        while '}' not in types:
-                            types = types + ' ' + line[i]
-                            i += 1
-                    types = types.replace("\n", "")
-                    types = types.replace("{", "")
-                    types = types.replace("}", "")
-                    types = types.split(",")
-                    self.data_headers_and_types[line[1]] = []
-                    self.data_headers_and_types[line[1]].append(types)
-                train_data = pd.read_csv(filepath_or_buffer=train_file, usecols=self.data_headers_and_types.keys(),
+                        types = types.replace("\n", "")
+                        types = types.replace("{", "")
+                        types = types.replace("}", "")
+                        types = types.split(",")
+                    else:
+                        types = ['NUMERIC']
+                    self.data_structure[line[1]] = types
+                train_data = pd.read_csv(filepath_or_buffer=training_file, usecols=self.data_structure.keys(),
                                          squeeze=True)
                 if self.num_bins_lineEdit.text()!= '' and self.num_bins_lineEdit.text()!='0':
                     self.bins = int(self.num_bins_lineEdit.text())
