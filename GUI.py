@@ -73,7 +73,11 @@ class GUI(object):
             # get the classifications for the test file
             self.classifier.clssify_input(self.model, testing_data, self.data_structure, self.bins)
 
-            messagebox.showinfo("Information","Classification completed!")
+            answered_ok = messagebox.showinfo("Information","Classification completed!")
+
+            if answered_ok == 'OK':
+                self.root.destroy()
+
 
         except IOError:
             messagebox.showerror("Error", "There was a problem reading the files!")
@@ -82,17 +86,17 @@ class GUI(object):
     def show_gui(self):
 
         # create the main window
-        root = Tk()
-        root.title('Naive Bayes Classifier')
-        root.geometry('500x300')
+        self.root = Tk()
+        self.root.title('Naive Bayes Classifier')
+        self.root.geometry('500x300')
 
         # create the frame
-        frame = Frame(root)
+        frame = Frame(self.root)
         frame.pack(side='top', fill='both', expand=True)
 
         # initialize the 2 global input variables
-        self.bins = IntVar(root)
-        self.folder_path = StringVar(root)
+        self.bins = IntVar(self.root)
+        self.folder_path = StringVar(self.root)
 
         # validates the input for enabling the "Build" button to be pressed
         def validate_input(*args):
@@ -129,7 +133,7 @@ class GUI(object):
         browse_label.grid(column=0, row=1, padx=4, pady=4)
         browse_text_box = Entry(frame, width=40, textvariable=self.folder_path)
         browse_text_box.grid(column=1, row=1, padx=4, pady=4)
-        browse_button = Button(frame, text="Browse", command=lambda: self.get_path(root))
+        browse_button = Button(frame, text="Browse", command=lambda: self.get_path(self.root))
         browse_button.grid(column=2, row=1, padx=4, pady=4)
         self.folder_path.trace("w", validate_input)
         bins_label = Label(frame, text="Discretization Bins:")
