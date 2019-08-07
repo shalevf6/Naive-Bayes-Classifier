@@ -52,7 +52,7 @@ class NB_classifier:
         for label in range(self.num_bins):
             labels.append(str(label))
         for (key, value) in struct.items():
-            if len(struct[key]['attributes'])==1 and struct[key]['attributes'] == "NUMERIC":
+            if len(struct[key]['attributes'][0])==1 and struct[key]['attributes'][0] == "NUMERIC":
                 maximum = self.findMAX(dataStr, key)
                 minimum = self.findMIN(dataStr, key)
                 #the pace size
@@ -62,7 +62,7 @@ class NB_classifier:
                                [(minimum + index * pace) for index in range(1, bins)] if 0 < pace else [minimum]
                 binMinMax += [float(sys.maxint)]
                 dataStr[key] = pd.cut(dataStr[key], bins=binMinMax, include_lowest=True, labels=labels)
-                struct[key]['attributes'] = binMinMax
+                struct[key]['attributes'][0] = binMinMax
 
     def findMAX(self, dataStr, attribute):
         return dataStr[attribute].max()
@@ -88,38 +88,34 @@ class NB_classifier:
         self.__makeDiscretization(test_data)
         return test_data
 
-    def __naiveBayes(self, dataFrame):
+    def __naiveBayes(self, train_data):
         struct = self.structure
         bins = self.num_of_bins
-        totalClass = {}
-
-        for classValues in struct['class']['attributes']:
-            totalClass[classValues] = len(dataFrame[dataFrame['class'] == classValues])
+        probabilities = self.probabilities
 
         for (key, val) in struct.items():
-            if key == 'class':
-                continue
-            df = dataFrame.groupby([key, 'class']).size().reset_index(name='counts')
-            df.insert(3, "Prob", float(0.0), True)
+            if key != 'class':
+                df = train_data.groupby([key, 'class']).size().reset_index(name='counts')
+                df.insert(3, "Prob", float(0.0), True)
 
-            if len(struct[key]['attributes']) == 1 and struct[key]['attributes'] == "NUMERIC":
-                attributeValues = range(bins)
-            else: attributeValues = struct[key]['attributes']
-            for attVal in attributeValues:
-                for classValue in struct['class']['attributes']:
-                    groupByData = dataFrame[(dataFrame[key] == attVal) & (dataFrame["class"] == classValue)]
-                    n = totalClass[classValue]
-                    nc = len(groupByData)
-                    p = float(1) / len(attributeValues)
-                    mEstimateValue = float(nc+2*p)/(n+2)
-                    the_Key = (key, attVal, classValue)
-                    self.probabilities[the_Key] = mEstimateValue
+                if len(struct[key]['attributes'][0]) == 1 and struct[key]['attributes'][0] == "NUMERIC":
+                    values = range(bins)
+                else: values = struct[key]['attributes'][0]
+                for attVal in values:
+                    for classValue in struct['class']['attributes'][0]:
+                        mergeAttributsWithClass = train_data[(train_data[key] == attVal) & (train_data["class"] == classValue)]
+                        p = float(1) / len(values)
+                        nc = len(mergeAttributsWithClass)
+                        n = len(train_data[train_data["class"] == classValue])
+                        mEstimateValue = float(nc+2*p)/(n+2)
+                        the_Key = (key, attVal, classValue)
+                        probabilities[the_Key] = mEstimateValue
 
     def calc_M_est_for_record(self, row_in_test):
         struct = self.structure
         probabilities = self.probabilities
         probs = dict()
-        for Yes_No_Class in struct['class']['attributes']:
+        for Yes_No_Class in struct['class']['attributes'][0]:
             m_est_prob = 1
             for (key, val) in struct.items():
                 att_val = row_in_test[key]
@@ -141,7 +137,7 @@ class NB_classifier:
             test_data = pd.read_csv(filepath_or_buffer=the_path + train_test_path)
         for value in struct.items():
             feature = value[0]
-            if len(struct[feature]['attributes'])==1 and struct[feature]['attributes'] == "NUMERIC":
+            if len(struct[feature]['attributes'][0]) == 1 and struct[feature]['attributes'][0] == "NUMERIC":
                 # handdle numeric by avr
                 if (isTrain):
                     train_data[feature] = train_data[feature].fillna(train_data[feature].mean())
