@@ -1,7 +1,7 @@
 from tkinter import IntVar, Label, Entry, Button, Tk, StringVar, Frame, filedialog, messagebox
 import os
 import pandas as pd
-from nb_imp import NB_classifier
+import Classifier
 
 
 class GUI(object):
@@ -31,7 +31,7 @@ class GUI(object):
     # builds the model from the given structure and training files
     def build(self):
         # create the classifier from the training file
-        self.classifier = NB_classifier(self.folder_path.get(), int(self.bins.get()))
+        self.classifier = Classifier.NB_classifier(self.folder_path.get(), int(self.bins.get()))
         self.classifier.build_model()
 
         # enable the "Classify" button to be pressed
@@ -61,7 +61,7 @@ class GUI(object):
         frame.pack(side='top', fill='both', expand=True)
 
         # initialize the 2 global input variables
-        self.bins = IntVar(self.root)
+        self.bins = IntVar(self.root,value=2)
         self.folder_path = StringVar(self.root)
 
         # validates the input for enabling the "Build" button to be pressed
