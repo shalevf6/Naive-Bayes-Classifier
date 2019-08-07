@@ -37,12 +37,21 @@ class GUI(object):
 
             # get the structure of the model from the structure file
             for line in structure_content:
-                classifiers = line.split(" ")[2]
+                initial_split = line.split(" ")
+
+                classifiers = initial_split[2]
+
+                if len(initial_split) > 3:
+                    i = 3
+                    while i < len(initial_split):
+                        classifiers = classifiers + " " + initial_split[i]
+                        i = i + 1
+
                 if '{' in classifiers:
-                    classifiers.replace("{", "")
-                    classifiers.replace("}", "")
-                    classifiers.replace("\n", "")
-                    classifiers.split(",")
+                    classifiers = classifiers.replace("\n", "")
+                    classifiers = classifiers.replace("{", "")
+                    classifiers = classifiers.replace("}", "")
+                    classifiers = classifiers.split(",")
                 else:
                     classifiers = ['NUMERIC']
 
