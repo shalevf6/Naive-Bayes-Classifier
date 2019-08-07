@@ -148,4 +148,4 @@ class GUI(object):
         self.classify_button.grid(column=1, row=4, padx=5, pady=8)
         self.classify_button.config(state='disabled')
 
-        root.mainloop()
+        self.root.mainloop()
