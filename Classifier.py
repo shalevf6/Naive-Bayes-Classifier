@@ -3,7 +3,7 @@ import pandas as pd
 
 class Classifier:
 
-    def _init_(self, path, data_structure, bins=2):
+    def __init__(self, path, data_structure, bins=2):
         self.file_path = path
         self.probabilities = dict()
         self.num_of_bins = int(bins)
