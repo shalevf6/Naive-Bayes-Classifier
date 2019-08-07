@@ -6,8 +6,7 @@ import Classifier
 
 class GUI(object):
     def __init__(self):
-        self.model = ""
-        self.model = ""
+        self.classifier = ""
 
     # checks whether the files exist in the given folder and are not empty
     def check_files_exist(self, path):
