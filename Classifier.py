@@ -1,48 +1,21 @@
 import pandas as pd
 import numpy as np
 
-class NB_classifier:
+class Classifier:
 
-
-    propabilities = None
-    file_path = None
-    num_of_bins = None
-    structure = None
-
-    def __init__(self, path, bins=2):
+    def __init__(self, path, data_structure, bins=2):
         self.file_path = path
         self.propabilities = dict()
         self.num_of_bins = int(bins)
-        self.structure = {}
+        self.structure = data_structure
 
     # the Main function that build the model by call semi functions.
     # called from the GUI class
-    def build_model(self):
+    def build_model(self, train_raw_data):
         endURL = '\\train.csv'
-        self.__buildStructure()
-        train_data = self.__insertData(endURL, True)
+        train_data = self.pre_process_data(train_raw_data)
         self.__makeDiscretization(train_data)
         self.__naiveBayes(train_data)
-
-    # the function build the structure dictionary
-    def __buildStructure(self):
-        endURL = '\\structure.txt'
-        struct = self.structure
-        the_path = self.file_path
-        decre1 = -1
-        decre2 = -2
-        with open(the_path + endURL) as struc_file:
-            for row in struc_file.readlines():
-                row = row.replace('{', '')
-                row = row.replace('}', '')
-                splits = row.split()
-                while 3 < len(splits):
-                    splits[len(splits) + decre2] += ' ' + splits.pop(len(splits) + decre1)
-
-                struct[splits[-decre1]] = {
-                    'num': splits[-decre2] == 'NUMERIC',
-                    'val': splits[-decre2].split(',')
-                }
 
     #the function is discretization and calc the binMinMax
     def __makeDiscretization(self, dataFrame):
@@ -61,9 +34,8 @@ class NB_classifier:
                 dataFrame[key] = pd.cut(dataFrame[key], bins=binMinMax, include_lowest=True, labels=range(len(binMinMax) - 1), duplicates='drop')
                 struct[key]['val'] = binMinMax
 
-    def clssify_input(self):
-        endURL = '\\test.csv'
-        test_data = self.__insertData(endURL, False)
+    def classify_input(self, test_raw_data):
+        test_data = self.pre_process_data(test_raw_data)
         self.__makeDiscretization(test_data)
         endURL = '\\output.txt'
         with open(self.file_path + endURL, 'w') as outputFile:
@@ -118,30 +90,13 @@ class NB_classifier:
             probs[classValue] = total_prob
         return max(probs, key=probs.get)
 
-    #preproccessing the data
-    def __insertData(self, train_test_path, isTrain):
-        struct = self.structure
-        the_path = self.file_path
-        if (isTrain):
-            train_data = pd.read_csv(filepath_or_buffer=the_path + train_test_path)
-        else:
-            test_data = pd.read_csv(filepath_or_buffer=the_path + train_test_path)
-        for value in struct.items():
-            feature = value[0]
-            isNumeric = value[1]['num']
-            if isNumeric:
-                # handdle numeric by avr
-                if (isTrain):
-                    train_data[feature] = train_data[feature].fillna(train_data[feature].mean())
-                else:
-                    test_data[feature] = test_data[feature].fillna(test_data[feature].mean())
+    # pre processing the data
+    def pre_process_data(self, data):
+        for feature in self.structure.keys():
+            if len(self.structure[feature]['attributes']) == 1 and self.structure[feature]['attributes'][0] == "NUMERIC":
+                # the numeric case
+                data[feature] = data[feature].fillna(data[feature].mean())
             else:
-                if (isTrain):
-                    # handdle not numeric by max of appearance
-                    train_data[feature] = train_data[feature].fillna(train_data[feature].mode()[0])
-                else:
-                    test_data[feature] = test_data[feature].fillna(test_data[feature].mode()[0])
-        if (isTrain):
-            return train_data
-        else:
-            return test_data
+                # the cateogorical case
+                data[feature] = data[feature].fillna(data[feature].mode()[0])
+        return data

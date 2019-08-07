@@ -7,7 +7,6 @@ import Classifier
 class GUI(object):
     def __init__(self):
         self.model = ""
-        self.data_structure = {}
         self.model = ""
 
     # checks whether the files exist in the given folder and are not empty
@@ -30,19 +29,48 @@ class GUI(object):
 
     # builds the model from the given structure and training files
     def build(self):
-        # create the classifier from the training file
-        self.classifier = Classifier.NB_classifier(self.folder_path.get(), int(self.bins.get()))
-        self.classifier.build_model()
+        try:
+            data_structure = {}
+            structure_file = open(self.folder_path.get() + "/Structure.txt", "r")
+            structure_content = structure_file.readlines()
+            structure_file.close()
 
-        # enable the "Classify" button to be pressed
-        self.classify_button.config(state='normal')
+            # get the structure of the model from the structure file
+            for line in structure_content:
+                classifiers = line.split(" ")[2]
+                if '{' in classifiers:
+                    classifiers.replace("{", "")
+                    classifiers.replace("}", "")
+                    classifiers.replace("\n", "")
+                    classifiers.split(",")
+                else:
+                    classifiers = ['NUMERIC']
 
-        messagebox.showinfo("Information","Building classifier using train-set is done!")
+                # add a new entry to the structure
+                data_structure[line.split(" ")[1]] = {'attributes': classifiers}
+
+            # get the raw data from the train file
+            train_data = pd.read_csv(filepath_or_buffer=self.folder_path.get() + "/train.csv")
+
+            # create the classifier from the training file
+            self.classifier = Classifier.Classifier(self.folder_path.get(), data_structure, int(self.bins.get()))
+            self.classifier.build_model(train_data)
+
+            # enable the "Classify" button to be pressed
+            self.classify_button.config(state='normal')
+
+            messagebox.showinfo("Information", "Building classifier using train-set is done!")
+        except IOError:
+            messagebox.showerror("Error", "There was a problem reading the files!")
+
 
     # classify the given test file by using the NB model generated earlier
     def classify(self):
+        # get the raw data from the train file
+        test_data = pd.read_csv(filepath_or_buffer=self.folder_path.get() + "/test.csv")
+
         # get the classifications for the test file
-        self.classifier.clssify_input()
+        self.classifier.classify_input(test_data)
 
         answered_ok = messagebox.showinfo("Information","Classification completed!")
         if answered_ok == 'OK':
