@@ -58,7 +58,7 @@ class NB_classifier:
                 binMinMax = [float('-inf')] + \
                                [(minimum + index * pace) for index in range(1, bins)] if 0 < pace else [minimum]
                 binMinMax += [float('inf')]
-                # dataFrame[key] = pd.cut(dataFrame[key], bins=binMinMax, include_lowest=True, labels=range(len(binMinMax) - 1), duplicates='drop')
+                dataFrame[key] = pd.cut(dataFrame[key], bins=binMinMax, include_lowest=True, labels=range(len(binMinMax) - 1), duplicates='drop')
                 struct[key]['val'] = binMinMax
 
     def clssify_input(self):
