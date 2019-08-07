@@ -1,11 +1,11 @@
+import sys
 import pandas as pd
-import numpy as np
 
 class Classifier:
 
     def __init__(self, path, data_structure, bins=2):
         self.file_path = path
-        self.propabilities = dict()
+        self.probabilities = dict()
         self.num_of_bins = int(bins)
         self.structure = data_structure
 
@@ -18,77 +18,86 @@ class Classifier:
         self.__naiveBayes(train_data)
 
     #the function is discretization and calc the binMinMax
-    def __makeDiscretization(self, dataFrame):
+    def __makeDiscretization(self, dataStr):
         struct = self.structure
         bins = self.num_of_bins
+        labels = []
+        for label in range(self.num_bins):
+            labels.append(str(label))
         for (key, value) in struct.items():
-            if value['num']:
-                maximum = dataFrame[key].max()
-                minimum = dataFrame[key].min()
+            if len(struct[key]['attributes'][0])==1 and struct[key]['attributes'][0] == "NUMERIC":
+                maximum = self.findMAX(dataStr, key)
+                minimum = self.findMIN(dataStr, key)
                 #the pace size
-                pace = (maximum - minimum) / bins
+                pace = self.calcPace(maximum, minimum, bins)
                 #calc by minmax formula
-                binMinMax = [float('-inf')] + \
+                binMinMax = [float(sys.minint)] + \
                                [(minimum + index * pace) for index in range(1, bins)] if 0 < pace else [minimum]
-                binMinMax += [float('inf')]
-                dataFrame[key] = pd.cut(dataFrame[key], bins=binMinMax, include_lowest=True, labels=range(len(binMinMax) - 1), duplicates='drop')
-                struct[key]['val'] = binMinMax
+                binMinMax += [float(sys.maxint)]
+                dataStr[key] = pd.cut(dataStr[key], bins=binMinMax, include_lowest=True, labels=labels)
+                struct[key]['attributes'][0] = binMinMax
+
+    def findMAX(self, dataStr, attribute):
+        return dataStr[attribute].max()
+
+    def findMIN(self, dataStr, attribute):
+        return dataStr[attribute].min()
+
+    def calcPace(self, maximum, minimum, bins):
+        return (maximum - minimum) / bins
 
     def classify_input(self, test_raw_data):
-        test_data = self.pre_process_data(test_raw_data)
-        self.__makeDiscretization(test_data)
+        test_data = self.preProcces4TestSet()
         endURL = '\\output.txt'
         with open(self.file_path + endURL, 'w') as outputFile:
-            indexRow = 1
             for index, record in test_data.iterrows():
-                row = str(indexRow) + " " + self.predict(record)+"\n"
+                rowIndexAsStr = str(index+1)
+                row = rowIndexAsStr + " " + self.calc_M_est_for_record(record)+"\n"
                 outputFile.write(row)
-                indexRow += 1
 
-    def __naiveBayes(self, dataFrame):
+    def preProcces4TestSet(self, test_raw_data):
+        test_data = self.__insertData(test_raw_data)
+        self.__makeDiscretization(test_data)
+        return test_data
+
+    def __naiveBayes(self, train_data):
         struct = self.structure
         bins = self.num_of_bins
-        totalClass = {}
-
-        for classValues in struct['class']['val']:
-            totalClass[classValues] = len(dataFrame[dataFrame['class'] == classValues])
+        probabilities = self.probabilities
 
         for (key, val) in struct.items():
-            if key == 'class':
-                continue
-            df = dataFrame.groupby([key, 'class']).size().reset_index(name='counts')
-            df.insert(3, "Prob", float(0.0), True)
-            #propabilities[key] = df
+            if key != 'class':
+                df = train_data.groupby([key, 'class']).size().reset_index(name='counts')
+                df.insert(3, "Prob", float(0.0), True)
 
-            attributeValues = {}
-            if struct[key]['num'] == False:
-                attributeValues = struct[key]['val']
-            else:
-                attributeValues = range(bins)
+                if len(struct[key]['attributes'][0]) == 1 and struct[key]['attributes'][0] == "NUMERIC":
+                    values = range(bins)
+                else: values = struct[key]['attributes'][0]
+                for attVal in values:
+                    for classValue in struct['class']['attributes'][0]:
+                        mergeAttributsWithClass = train_data[(train_data[key] == attVal) & (train_data["class"] == classValue)]
+                        p = float(1) / len(values)
+                        nc = len(mergeAttributsWithClass)
+                        n = len(train_data[train_data["class"] == classValue])
+                        mEstimateValue = float(nc+2*p)/(n+2)
+                        the_Key = (key, attVal, classValue)
+                        probabilities[the_Key] = mEstimateValue
 
-            for attVal in attributeValues:
-                for classValue in struct['class']['val']:
-                    groupByData = dataFrame[(dataFrame[key] == attVal) & (dataFrame["class"] == classValue)]
-                    n = totalClass[classValue]
-                    nc = len(groupByData)
-                    p = float(1) / len(attributeValues)
-                    mEstimateValue = float(nc+2*p)/(n+2)
-                    the_Key = (key, attVal, classValue)
-                    self.propabilities[the_Key] = mEstimateValue
-
-    def predict(self, record):
+    def calc_M_est_for_record(self, row_in_test):
         struct = self.structure
-
+        probabilities = self.probabilities
         probs = dict()
-        for classValue in struct['class']['val']:
-            total_prob = 1
+        for Yes_No_Class in struct['class']['attributes'][0]:
+            m_est_prob = 1
             for (key, val) in struct.items():
+                att_val = row_in_test[key]
                 if key == 'class':
                     continue
-                key_value = (key, record[key], classValue)
-                total_prob = total_prob * self.propabilities[key_value]
-            probs[classValue] = total_prob
-        return max(probs, key=probs.get)
+                key_value = (key, att_val, Yes_No_Class)
+                m_est_prob = m_est_prob * probabilities[key_value]
+            probs[Yes_No_Class] = m_est_prob
+        maximum2return = max(probs, key=probs.get)
+        return maximum2return
 
     # pre processing the data
     def pre_process_data(self, data):
@@ -96,6 +105,7 @@ class Classifier:
             if len(self.structure[feature]['attributes']) == 1 and self.structure[feature]['attributes'][0] == "NUMERIC":
                 # the numeric case
                 data[feature] = data[feature].fillna(data[feature].mean())
+
             else:
                 # the cateogorical case
                 data[feature] = data[feature].fillna(data[feature].mode()[0])
